@@ -1,0 +1,21 @@
+#
+# Normal rules
+#
+.*
+*.o
+*.o.*
+*.a
+
+#
+# Top-level generic files
+#
+
+# cscope files
+cscope.*
+ncscope.*
+
+*.orig
+*.bak
+*~
+\#*#
+
