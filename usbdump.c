@@ -40,6 +40,7 @@
 #define LINEBUF_LEN		16383
 
 int opt_unique_num = 0;
+int opt_bus_num = -1;
 
 int64_t start_ts = 0;
 int32_t start_ts_us = 0;
@@ -185,7 +186,7 @@ process_packet(struct usbmon_packet *hdr, char *data)
 
 
 void
-usb_sniff(bus, address)
+usb_sniff(int bus, int address)
 {
 	struct mon_mfetch_arg mfetch;
 	struct usbmon_packet *hdr;
@@ -227,7 +228,8 @@ usb_sniff(bus, address)
 			if (hdr->type == '@')
 				/* filler packet */
 				continue;
-			if (hdr->busnum != bus || hdr->devnum != address)
+			if ((bus != 0 && hdr->busnum != bus) ||
+				((address != 0) && (hdr->devnum != address)))
 				/* some other device */
 				continue;
 
@@ -321,18 +323,18 @@ usage(void)
 {
 
 	printf("usbdump Copyright (C) 2011 Bert Vermeulen <bert@biot.com>\n");
-	printf("usage: usbdump -d <vid:pid> [-u <num lines>]\n");
+	printf("usage: usbdump [-d <vid:pid>] [-u <num lines>] [-b <bus number>]\n");
 
 }
 
 int
 main(int argc, char **argv)
 {
-	int opt, bus, address;
+	int opt, bus, address = 0;
 	char *device, *entry;
 
 	device = NULL;
-	while ((opt = getopt(argc, argv, "d:u:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:u:b:")) != -1) {
 		switch (opt) {
 		case 'd':
 			if (strlen(optarg) != 9
@@ -344,15 +346,21 @@ main(int argc, char **argv)
 		case 'u':
 			opt_unique_num = strtol(optarg, NULL, 10);
 			break;
+		case 'b':
+			opt_bus_num = strtol(optarg, NULL, 10);
+			break;
 		}
 	}
 
-	if (!device) {
+	if (!device && opt_bus_num == -1) {
 		usage();
 		return 1;
 	}
 
-	if (find_device(device, &bus, &address)) {
+	if (opt_bus_num != -1) {
+		bus = opt_bus_num;
+		usb_sniff(bus, address);
+	} else if (find_device(device, &bus, &address)) {
 		usb_sniff(bus, address);
 	}
 
