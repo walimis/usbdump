@@ -43,7 +43,7 @@ int opt_unique_num = 0;
 
 int64_t start_ts = 0;
 int32_t start_ts_us = 0;
-char **lines = {0};
+char **lines = { 0 };
 
 
 char *pretty_xfertype[] = {
@@ -54,7 +54,8 @@ char *pretty_xfertype[] = {
 };
 
 
-void hexdump(char *linebuf, void *address, int length)
+void
+hexdump(char *linebuf, void *address, int length)
 {
 	int n, i;
 	unsigned char *buf;
@@ -72,15 +73,17 @@ void hexdump(char *linebuf, void *address, int length)
 			linebuf[n++] = ' ';
 			linebuf[n] = '\0';
 		}
-		snprintf(linebuf+n, LINEBUF_LEN-n, "%.2x", buf[i]);
+		snprintf(linebuf + n, LINEBUF_LEN - n, "%.2x", buf[i]);
 		n += 2;
 	}
 }
 
 
-void process_packet(struct usbmon_packet *hdr, char *data)
+void
+process_packet(struct usbmon_packet *hdr, char *data)
 {
-	static int unique_ready = 0, unique_cnt = 0, unique_setcnt = 0, cnt = 0;
+	static int unique_ready = 0, unique_cnt = 0, unique_setcnt = 0, cnt =
+		0;
 	int i;
 	int64_t ts;
 	int32_t ts_us;
@@ -92,7 +95,8 @@ void process_packet(struct usbmon_packet *hdr, char *data)
 			if (hdr->type == 'S')
 				/* read request */
 				return;
-		} else {
+		}
+		else {
 			if (hdr->type == 'C')
 				/* ack to a write packet */
 				return;
@@ -105,7 +109,7 @@ void process_packet(struct usbmon_packet *hdr, char *data)
 		start_ts_us = hdr->ts_usec;
 	}
 
-	linebuf = malloc(LINEBUF_LEN+1);
+	linebuf = malloc(LINEBUF_LEN + 1);
 	linebuf[0] = '\0';
 
 	ts = hdr->ts_sec - start_ts;
@@ -116,22 +120,30 @@ void process_packet(struct usbmon_packet *hdr, char *data)
 	}
 
 	if (hdr->epnum & USB_DIR_IN)
-		snprintf(linebuf+strlen(linebuf), LINEBUF_LEN-strlen(linebuf), "%d<-- ", hdr->epnum & 0x7f);
+		snprintf(linebuf + strlen(linebuf),
+			 LINEBUF_LEN - strlen(linebuf), "%d<-- ",
+			 hdr->epnum & 0x7f);
 	else
-		snprintf(linebuf+strlen(linebuf), LINEBUF_LEN-strlen(linebuf), "-->%d ", hdr->epnum & 0x7f);
+		snprintf(linebuf + strlen(linebuf),
+			 LINEBUF_LEN - strlen(linebuf), "-->%d ",
+			 hdr->epnum & 0x7f);
 
 	if (hdr->len_cap > 0) {
 		if (hdr->len_cap == hdr->length)
-			snprintf(linebuf+strlen(linebuf), LINEBUF_LEN-strlen(linebuf), "%d: ", hdr->len_cap);
+			snprintf(linebuf + strlen(linebuf),
+				 LINEBUF_LEN - strlen(linebuf), "%d: ",
+				 hdr->len_cap);
 		else
-			snprintf(linebuf+strlen(linebuf), LINEBUF_LEN-strlen(linebuf), "%d/%d: ", hdr->len_cap, hdr->length);
+			snprintf(linebuf + strlen(linebuf),
+				 LINEBUF_LEN - strlen(linebuf), "%d/%d: ",
+				 hdr->len_cap, hdr->length);
 		hexdump(linebuf, data, hdr->len_cap);
 	}
 
 	if (opt_unique_num) {
 		if (!unique_ready) {
 			lines[unique_cnt] = strdup(linebuf);
-			printf("%3"PRId64".%.6d %s\n", ts, ts_us, linebuf);
+			printf("%3" PRId64 ".%.6d %s\n", ts, ts_us, linebuf);
 		}
 		else if (strcmp(linebuf, lines[unique_cnt])) {
 			/* line is not the same as the previous one in the sequence */
@@ -139,11 +151,12 @@ void process_packet(struct usbmon_packet *hdr, char *data)
 			if (unique_setcnt > 1)
 				printf("\n");
 			for (i = 0; i < unique_cnt; i++) {
-				printf("%3"PRId64".%.6d %s\n", ts, ts_us, lines[i]);
+				printf("%3" PRId64 ".%.6d %s\n", ts, ts_us,
+				       lines[i]);
 				free(lines[i]);
 			}
 
-			printf("%3"PRId64".%.6d %s\n", ts, ts_us, linebuf);
+			printf("%3" PRId64 ".%.6d %s\n", ts, ts_us, linebuf);
 
 			/* this line starts a new sequence */
 			lines[0] = strdup(linebuf);
@@ -154,7 +167,8 @@ void process_packet(struct usbmon_packet *hdr, char *data)
 
 		if (++unique_cnt == opt_unique_num) {
 			if (unique_ready) {
-				printf("last %d lines repeated %d times\r", opt_unique_num, unique_setcnt);
+				printf("last %d lines repeated %d times\r",
+				       opt_unique_num, unique_setcnt);
 				fflush(stdout);
 			}
 			unique_ready = 1;
@@ -163,14 +177,15 @@ void process_packet(struct usbmon_packet *hdr, char *data)
 		}
 	}
 	else
-		printf("%3"PRId64".%.6d %s\n", ts, ts_us, linebuf);
+		printf("%3" PRId64 ".%.6d %s\n", ts, ts_us, linebuf);
 
 	free(linebuf);
 
 }
 
 
-void usb_sniff(bus, address)
+void
+usb_sniff(bus, address)
 {
 	struct mon_mfetch_arg mfetch;
 	struct usbmon_packet *hdr;
@@ -179,18 +194,22 @@ void usb_sniff(bus, address)
 	uint32_t vec[MAX_PACKETS];
 
 	snprintf(path, 63, "%s%d", USBMON_DEVICE, bus);
-	if ( (fd = open(path, O_RDONLY)) == -1 ) {
+	if ((fd = open(path, O_RDONLY)) == -1) {
 		printf("unable to open %s: %s\n", path, strerror(errno));
 		return;
 	}
 
-	if ( (kbuf_len = ioctl(fd, MON_IOCQ_RING_SIZE)) <= 0) {
-		printf("failed to determine kernel USB buffer size: %s\n", strerror(errno));
+	if ((kbuf_len = ioctl(fd, MON_IOCQ_RING_SIZE)) <= 0) {
+		printf("failed to determine kernel USB buffer size: %s\n",
+		       strerror(errno));
 		return;
 	}
 
-	if ( (mbuf = mmap(NULL, kbuf_len, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED) {
-		printf("unable to mmap %d bytes: %s\n", kbuf_len, strerror(errno));
+	if ((mbuf =
+	     mmap(NULL, kbuf_len, PROT_READ, MAP_SHARED, fd,
+		  0)) == MAP_FAILED) {
+		printf("unable to mmap %d bytes: %s\n", kbuf_len,
+		       strerror(errno));
 		return;
 	}
 
@@ -212,7 +231,9 @@ void usb_sniff(bus, address)
 				/* some other device */
 				continue;
 
-			process_packet(hdr, &mbuf[vec[i]]+sizeof(struct usbmon_packet));
+			process_packet(hdr,
+				       &mbuf[vec[i]] +
+				       sizeof(struct usbmon_packet));
 		}
 	}
 	free(lines);
@@ -223,7 +244,8 @@ void usb_sniff(bus, address)
 }
 
 
-int check_device(struct dirent *de, char *vidpid, int *bus, int *address)
+int
+check_device(struct dirent *de, char *vidpid, int *bus, int *address)
 {
 	int fd;
 	char path[128], vid[5], buf[5];
@@ -232,27 +254,27 @@ int check_device(struct dirent *de, char *vidpid, int *bus, int *address)
 	memcpy(vid, vidpid, 4);
 	vid[4] = '\0';
 	sprintf(path, "%s/%s/idVendor", SYSBASE, de->d_name);
-	if ( (fd = open(path, O_RDONLY)) == -1 )
+	if ((fd = open(path, O_RDONLY)) == -1)
 		return 0;
 	buf[4] = '\0';
-	if ( (read(fd, buf, 4) != 4) || strncmp(vid, buf, 4) ) {
+	if ((read(fd, buf, 4) != 4) || strncmp(vid, buf, 4)) {
 		close(fd);
 		return 0;
 	}
 
 	/* product */
 	sprintf(path, "%s/%s/idProduct", SYSBASE, de->d_name);
-	if ( (fd = open(path, O_RDONLY)) == -1 )
+	if ((fd = open(path, O_RDONLY)) == -1)
 		return 0;
 	buf[4] = '\0';
-	if ( (read(fd, buf, 4) != 4) || strncmp(vidpid+5, buf, 4) ) {
+	if ((read(fd, buf, 4) != 4) || strncmp(vidpid + 5, buf, 4)) {
 		close(fd);
 		return 0;
 	}
 
 	/* bus */
 	sprintf(path, "%s/%s/busnum", SYSBASE, de->d_name);
-	if ( (fd = open(path, O_RDONLY)) == -1 )
+	if ((fd = open(path, O_RDONLY)) == -1)
 		return 0;
 	memset(buf, 0, 5);
 	read(fd, buf, 4);
@@ -260,7 +282,7 @@ int check_device(struct dirent *de, char *vidpid, int *bus, int *address)
 
 	/* address */
 	sprintf(path, "%s/%s/devnum", SYSBASE, de->d_name);
-	if ( (fd = open(path, O_RDONLY)) == -1 )
+	if ((fd = open(path, O_RDONLY)) == -1)
 		return 0;
 	memset(buf, 0, 5);
 	read(fd, buf, 4);
@@ -270,18 +292,19 @@ int check_device(struct dirent *de, char *vidpid, int *bus, int *address)
 }
 
 
-int find_device(char *vidpid, int *bus, int *address)
+int
+find_device(char *vidpid, int *bus, int *address)
 {
 	DIR *dir;
 	struct dirent *de;
 	char buf[16];
 	int found;
 
-	if ( !(dir = opendir(SYSBASE)) )
+	if (!(dir = opendir(SYSBASE)))
 		return 0;
 
 	found = 0;
-	while ( (de = readdir(dir)) ) {
+	while ((de = readdir(dir))) {
 		if (check_device(de, vidpid, bus, address)) {
 			found = 1;
 			break;
@@ -293,7 +316,8 @@ int find_device(char *vidpid, int *bus, int *address)
 }
 
 
-void usage(void)
+void
+usage(void)
 {
 
 	printf("usbdump Copyright (C) 2011 Bert Vermeulen <bert@biot.com>\n");
@@ -301,7 +325,8 @@ void usage(void)
 
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 	int opt, bus, address;
 	char *device, *entry;
@@ -310,7 +335,8 @@ int main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "d:u:")) != -1) {
 		switch (opt) {
 		case 'd':
-			if (strlen(optarg) != 9 || strspn(optarg, "01234567890abcdef:") != 9)
+			if (strlen(optarg) != 9
+			    || strspn(optarg, "01234567890abcdef:") != 9)
 				printf("invalid format for device id (aaaa:bbbb)\n");
 			else
 				device = optarg;
@@ -332,6 +358,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
-
-
